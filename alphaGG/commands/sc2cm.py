@@ -56,7 +56,7 @@ class Player(Command):
 W/L: {wins}/{losses} ({winrate} % winrate in {total} games)
 Last played: {last_played}
 
-More on Battle.net: *{bnet_url}*
+Battle.net: *{bnet_url}*
         """.format(
             name=p['name'],
             rank=p['rank'],
@@ -74,6 +74,12 @@ More on Battle.net: *{bnet_url}*
 
         if p['twitch_url']:
             self.response += '\nWatch live at: *{}*\n'.format(p['twitch_url'])
+
+        if p['rankedftw_url']:
+            self.response += '\nRFTW ladder rank: *{}*\n'.format(p['rankedftw_url'])
+
+        if p['rankedftw_graph_url']:
+            self.response += 'RFTW career graph: *{}*\n'.format(p['rankedftw_graph_url'])
 
 
 class ClanWar(Command):
