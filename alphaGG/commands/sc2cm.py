@@ -62,7 +62,7 @@ Battle.net: *{bnet_url}*
             rank=p['rank'],
             league=p['league'],
             race=p['race'],
-            country=p['country'],
+            country=p['country'] if p['country'] else 'an undisclosed location',
             points=p['score'],
             wins=p['wins'],
             losses=p['losses'],
