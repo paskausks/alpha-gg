@@ -39,6 +39,10 @@ for c in commands:
 async def on_ready():
     print('Logged in as {}'.format(client.user.name))
 
+    status = discord.Game()
+    status.name = '{}help Simulator'.format(config.COMMAND_PREFIX)
+    client.change_status(status)
+
     while True:
         # Run background tasks once in a second.
         for cls in register.CommandRegister.commands:
