@@ -2,6 +2,7 @@
 
 import sys
 import os
+import asyncio
 import discord
 
 sys.path.extend([os.path.dirname(os.path.dirname(os.path.abspath(__file__)))])
@@ -37,6 +38,17 @@ for c in commands:
 @client.event
 async def on_ready():
     print('Logged in as {}'.format(client.user.name))
+
+    while True:
+        # Run background tasks once in a second.
+        for cls in register.CommandRegister.commands:
+            try:
+                await cls.background(client)
+            except TypeError:
+                cls.background(client)
+
+        await asyncio.sleep(1)  # Run background tasks once in a second
+
 
 @client.event
 async def on_message(message):

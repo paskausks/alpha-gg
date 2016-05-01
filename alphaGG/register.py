@@ -35,6 +35,13 @@ class Command(object):
         pass
 
     @staticmethod
+    def background(client: discord.Client):
+        """
+        Method ran once in a specified period of time for background tasks
+        """
+        pass
+
+    @staticmethod
     def on_registration():
         """
         This method get's called whenever a command get's registered via the CommandRegister's register_command() method
