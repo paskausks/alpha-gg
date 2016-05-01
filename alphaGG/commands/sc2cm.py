@@ -1,7 +1,6 @@
 #!/bin/env python3
 
 import discord
-import asyncio
 import requests
 from alphaGG.register import Command
 
@@ -188,6 +187,8 @@ Notes:
                                 member.name, message.author.name, r['opponent'], cw_link, player_list
                             )
                         )
+
+                self.response = 'Success!'
 
                 return
 
