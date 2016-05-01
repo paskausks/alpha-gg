@@ -36,11 +36,7 @@ for c in commands:
 
 @client.event
 async def on_ready():
-    print('Logged in as')
-    print(client.user.name)
-    print(client.user.id)
-    print('------')
-
+    print('Logged in as {}'.format(client.user.name))
 
 @client.event
 async def on_message(message):
@@ -53,7 +49,12 @@ async def on_message(message):
         # and call it's handle() method.
         if message.content.startswith('{}{}'.format(command_prefix, cls.command)):
             cmd = cls()
-            cmd.handle(message, client)
+            try:
+                await cmd.handle(message, client)
+            except TypeError:
+                # handle() Not a coroutine
+                cmd.handle(message, client)
+
             if cmd.response:
                 # Send a response if it has been defined.
                 await client.send_message(message.channel, cmd.response)

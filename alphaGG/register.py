@@ -29,7 +29,8 @@ class Command(object):
 
     def handle(self, message: discord.Message, client: discord.Client):
         """
-        Handler method for when command matches the called command
+        Handler method for when command matches the called command.
+        Command can be a regular mehod as well as a asyncio coroutine.
         """
         pass
 

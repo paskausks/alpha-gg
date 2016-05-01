@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 import discord
+import asyncio
 import requests
 from alphaGG.register import Command
 
@@ -91,15 +92,31 @@ Battle.net: *{bnet_url}*
 
 
 class ClanWar(Command):
+    CW_PLAYER_ROLE = 'CW Players'
+    CW_CHANNEL = 'clanwars'
+
     command = 'cw'
-    help = 'Returns a list of upcoming clan wars or, if an ID is supplied, details of a clan war.'
-    verbose_help = """`cw <optional ID>` - Returns a list of upcoming clan wars.\n If an optional ID is supplied, \
-details for that specific clan war are shown."""
+    help = """Returns a list of upcoming clan wars or, if an ID and action is supplied, details of a clan war and \
+promoting that clan war to CW players"""
+    verbose_help = """`cw` - Returns a list of upcoming clan wars.
+`cw get <id>` - Shows details about an upcoming clan war.
+`cw promote <id>` - Promotes a clan war to the {role} role in the #{chan} channel and messages the role members \
+privately.
+""".format(
+        role=CW_PLAYER_ROLE,
+        chan=CW_CHANNEL
+    )
 
-    def handle(self, message: discord.Message, client: discord.Client):
+    # Decorated as a corouting, so client.send_message can be used
+    async def handle(self, message: discord.Message, client: discord.Client):
 
-        # TODO: Refactor getting the arguments into an instance method!
-        cw_id = ' '.join(message.content.split(' ')[1:])  # Ignore the first arg, which is the command itself
+        args = message.content.split(' ')
+        try:
+            action = args[1]  # Ignore the first arg, which is the command itself
+            cw_id = args[2]
+        except IndexError:
+            cw_id = None
+            action = None
 
         if cw_id:
             try:
@@ -116,28 +133,63 @@ details for that specific clan war are shown."""
 
             r = response.json()['clanwar']
 
-            self.response = """*{date}* vs **{opponent}**
+            if action == 'get':
+                self.response = """*{date}* vs **{opponent}**
 In game channel: *{chan}*
 
 Notes:
 {notes}
 """.format(
-                date=r['datetime'],
-                opponent=r['opponent'],
-                chan=r['ingame_channel'],
-                notes=r['notes']
-            )
+                    date=r['datetime'],
+                    opponent=r['opponent'],
+                    chan=r['ingame_channel'],
+                    notes=r['notes']
+                )
 
-            if r['players']:
-                self.response += '\nPlayers:\n'
-                for p in r['players']:
-                    self.response += '{name} ({league} {race})\n'.format(
-                        name=p['name'],
-                        league=p['league'],
-                        race=p['race']
+                if r['players']:
+                    self.response += '\nPlayers:\n'
+                    for p in r['players']:
+                        self.response += '{name} ({league} {race})\n'.format(
+                            name=p['name'],
+                            league=p['league'],
+                            race=p['race']
+                        )
+                else:
+                    self.response += '\nNo registered players.'
+
+            elif action == 'promote':
+                # Promotion command invoked
+                cw_role = discord.utils.find(lambda r: r.name == self.CW_PLAYER_ROLE, message.server.roles)
+                cw_chan = discord.utils.find(lambda c: c.name == self.CW_CHANNEL, client.get_all_channels())
+                self.response = ''
+
+                cw_link = '{}/cw/{}'.format(SC2CM_HOST, r['id'])
+
+                player_list = '\n{} players registered'.format(len(r['players']))
+
+                if r['players']:
+                    player_list += ' - '
+                    for p in r['players']:
+                        player_list += '{} '.format(p['name'])
+
+                await client.send_message(
+                    cw_chan,
+                    '{}, take a look at an upcoming CW vs **{}** - {}{}!'.format(
+                        cw_role.mention, r['opponent'], cw_link, player_list
                     )
-            else:
-                self.response += '\nNo registered players.'
+                )
+
+                # PM all of the members of the role
+                for member in list(message.server.members):
+                    if cw_role in member.roles:
+                        await client.send_message(
+                            member,
+                            'Hey, {}! {} wants you to look at an upcoming CW vs **{}** - {}{}'.format(
+                                member.name, message.author.name, r['opponent'], cw_link, player_list
+                            )
+                        )
+
+                return
 
             return
 
