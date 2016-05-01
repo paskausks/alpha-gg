@@ -52,22 +52,30 @@ class Player(Command):
             return
 
         p = response.json()['player']
-        self.response = """**{name}**, a rank {rank} {league} {race} from {country} with {points} points
-W/L: {wins}/{losses} ({winrate} % winrate in {total} games)
-Last played: {last_played}
 
-Battle.net: *{bnet_url}*
-        """.format(
-            name=p['name'],
+        country = p['country'] if p['country'] else 'an undisclosed location'
+
+        player_description = """a rank {rank} {league} {race} from {country} with {points} points
+W/L: {wins}/{losses} ({winrate} % winrate in {total} games).""".format(
             rank=p['rank'],
             league=p['league'],
             race=p['race'],
-            country=p['country'] if p['country'] else 'an undisclosed location',
+            country=country,
             points=p['score'],
             wins=p['wins'],
             losses=p['losses'],
             winrate=p['winrate'],
             total=p['total_games'],
+        )
+        if not p['ranked']:
+            player_description = 'a unranked player from {}.'.format(country)
+        self.response = """**{name}**, {player_description}
+Last played: {last_played}
+
+Battle.net: *{bnet_url}*
+        """.format(
+            name=p['name'],
+            player_description=player_description,
             last_played=p['last_game'],
             bnet_url=p['bnet_profile_url']
         )
