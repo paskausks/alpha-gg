@@ -29,7 +29,7 @@ class Help(register.Command):
             # General information for all commands
             self.response += '**{}{}**    {}\n'.format(config.COMMAND_PREFIX, c.command, c.help)
 
-        self.response += '\n\ntype {}{} <command> to get more detailed help about a particular command!'.format(
+        self.response += '\n\ntype `{}{} <command>` to get more detailed help about a particular command!'.format(
             config.COMMAND_PREFIX,
             Help.command
         )
