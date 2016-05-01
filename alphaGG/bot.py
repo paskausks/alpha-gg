@@ -41,7 +41,7 @@ async def on_ready():
 
     status = discord.Game()
     status.name = '{}help Simulator'.format(config.COMMAND_PREFIX)
-    client.change_status(status)
+    await client.change_status(status)
 
     while True:
         # Run background tasks once in a second.
