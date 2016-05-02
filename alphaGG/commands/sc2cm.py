@@ -1,4 +1,5 @@
 #!/bin/env python3
+import datetime
 
 import discord
 import requests
@@ -94,6 +95,11 @@ class ClanWar(Command):
     CW_PLAYER_ROLE = 'CW Players'
     CW_CHANNEL = 'clanwars'
 
+    LAST_CHECK = datetime.datetime.now()  # Timestamp when the bot last checked if a CW isn't coming soon
+    CHECKING_PERIOD = 1  # Minutes, how often will the bot check for imminent clan wars
+    TIME_TO_CW = 30  # When it's this amount of minutes until a clan war, it will trigger the announcement.
+    TZ_OFFSET = 3  # All clan wars are specified in CEST
+
     command = 'cw'
     help = """Returns a list of upcoming clan wars or, if an ID and action is supplied, details of a clan war and \
 promoting that clan war to CW players"""
@@ -106,7 +112,36 @@ privately.
         chan=CW_CHANNEL
     )
 
-    # Decorated as a corouting, so client.send_message can be used
+    CW_LIST = '{}/api/cw'.format(SC2CM_HOST)  # URL for fetching upcoming clan wars.
+
+    announced_cws = []  # To keep track if a CW has already been announced. TODO: Use a local datastore for this
+
+    @staticmethod
+    def background(client: discord.Client):
+        now = datetime.datetime.now()
+        if not ClanWar.LAST_CHECK + datetime.timedelta(minutes=ClanWar.CHECKING_PERIOD) <= now:
+            return
+
+        cw_list = requests.get(ClanWar.CW_LIST).json()['clanwars']
+
+        # Check if any of the clan wars are nearer than
+        for cw in cw_list:
+            cw_time = datetime.datetime.fromtimestamp(
+                cw['datetime_timestamp']
+            ) - datetime.timedelta(hours=ClanWar.TZ_OFFSET)
+
+            cw_id = cw['id']
+
+            if cw_id not in ClanWar.announced_cws and \
+                        now >= cw_time - datetime.timedelta(minutes=ClanWar.CHECKING_PERIOD):
+                # Imminent CW found. Announce.
+                ClanWar.announced_cws.append(cw_id)
+                break
+
+        # Set up next check
+        ClanWar.LAST_CHECK = now
+
+    # Decorated as a coroutine, so client.send_message can be used
     async def handle(self, message: discord.Message, client: discord.Client):
 
         args = message.content.split(' ')
@@ -194,7 +229,7 @@ Notes:
 
             return
 
-        response = requests.get('{}/api/cw'.format(SC2CM_HOST)).json()
+        response = requests.get(ClanWar.CW_LIST).json()
 
         if not response['clanwars']:
             self.response = 'No upcoming clan wars.'
