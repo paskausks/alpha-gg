@@ -16,12 +16,12 @@ class Command(object):
     help = ''  # Short help command
     verbose_help = ''  # Verbose help command for when the user types 'help <commandname>'
 
-    def __init__(self, message: discord.Message, client: discord.Client, database: Database):
-        # This parameter is used to optionally respond back in the channel
+    def __init__(self, message: discord.Message, client: discord.Client):
+        # This parameter is used to optionally respond back in the channel where the command was triggered from.
         self.response = ''
+
         self.message = message
         self.client = client
-        self.database = database
 
     @classmethod
     def trigger(cls, message: discord.Message):
@@ -31,8 +31,8 @@ class Command(object):
         but of course can be used to check if the message content matches a regex, comes from a specific role, user etc.
         :return: boolean
         """
-        from alphaGG.config import COMMAND_PREFIX
-        return message.content.startswith('{}{}'.format(COMMAND_PREFIX.prefix, cls.command))
+        from alphaGG.config import COMMAND_PREFIX  # to avoid a cross-import.
+        return message.content.startswith('{}{}'.format(COMMAND_PREFIX, cls.command))
 
     def handle(self):
         """

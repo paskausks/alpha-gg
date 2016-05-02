@@ -28,9 +28,6 @@ client = discord.Client()
 # Register commands
 commands = config.COMMANDS
 
-# Init database
-db = Database()
-
 if not commands:
     sys.stderr.write('No commands registered in config.py!')
 
@@ -67,7 +64,7 @@ async def on_message(message):
         # look through all registered command classes. See if there's a match for the command trigger, initialize it
         # and call it's handle() method.
         if cls.trigger(message):
-            cmd = cls(message, client, db)
+            cmd = cls(message, client)
             try:
                 await cmd.handle()
             except TypeError:
@@ -83,5 +80,5 @@ try:
     client.run(config.BOT_TOKEN)
 except discord.errors.LoginFailure:
     sys.stderr.write('Token incorrect. Please check the value of BOT_TOKEN in config.py!\n')
-    db.connection.close()
+    Database.connection.close()
     sys.exit(1)

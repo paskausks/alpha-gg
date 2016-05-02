@@ -4,6 +4,8 @@ import datetime
 import discord
 import requests
 from alphaGG.command import Command
+from alphaGG.data import Database
+import sqlite3
 
 """"
 Commands to interact with the API of SC2CM
@@ -95,10 +97,9 @@ class ClanWar(Command):
     CW_PLAYER_ROLE = 'CW Players'
     CW_CHANNEL = 'clanwars'
 
-    LAST_CHECK = datetime.datetime.now()  # Timestamp when the bot last checked if a CW isn't coming soon
-    CHECKING_PERIOD = 1  # Minutes, how often will the bot check for imminent clan wars
+    LAST_CHECK = datetime.datetime.utcnow()  # Timestamp when the bot last checked if a CW isn't coming soon
+    CHECKING_PERIOD = 5  # Minutes, how often will the bot check for imminent clan wars
     TIME_TO_CW = 30  # When it's this amount of minutes until a clan war, it will trigger the announcement.
-    TZ_OFFSET = 3  # All clan wars are specified in CEST
 
     command = 'cw'
     help = """Returns a list of upcoming clan wars or, if an ID and action is supplied, details of a clan war and \
@@ -114,11 +115,50 @@ privately.
 
     CW_LIST = '{}/api/cw'.format(SC2CM_HOST)  # URL for fetching upcoming clan wars.
 
-    announced_cws = []  # To keep track if a CW has already been announced. TODO: Use a local datastore for this
+    @staticmethod
+    def get_cw_url(cw_id: int):
+        # Returns the CW url for a particular CW.
+        return '{}/cw/{}'.format(SC2CM_HOST, cw_id)
 
     @staticmethod
-    def background(client: discord.Client):
-        now = datetime.datetime.now()
+    def get_announced_cws():
+        """
+        Get an array of the last 100 announced CWs
+        """
+        c = Database.cursor
+        c.execute('SELECT cw_id FROM clanwars_announced ORDER BY id DESC LIMIT 100;')
+        result = c.fetchall()
+        return [r[0] for r in result]
+
+    @staticmethod
+    def add_announced_cw(cw_id: int):
+        """
+        Add a CW ID to the announced database
+        """
+        try:
+            Database.cursor.execute('INSERT INTO clanwars_announced (`cw_id`) VALUES (?)', (cw_id,))
+            Database.connection.commit()
+        except sqlite3.IntegrityError:
+            # Not unique
+            pass
+
+    @staticmethod
+    def on_registration():
+        # Set up the data structure needed to track announced CWs
+        try:
+            Database.cursor.execute("""CREATE TABLE clanwars_announced(
+              id    INTEGER PRIMARY KEY AUTOINCREMENT,
+              cw_id INT NOT NULL UNIQUE
+            );""")
+            Database.connection.commit()
+        except sqlite3.OperationalError:
+            # Table already exists
+            pass
+
+    @staticmethod
+    async def background(client: discord.Client):
+        now = datetime.datetime.utcnow()
+
         if not ClanWar.LAST_CHECK + datetime.timedelta(minutes=ClanWar.CHECKING_PERIOD) <= now:
             return
 
@@ -127,19 +167,42 @@ privately.
 
         cw_list = requests.get(ClanWar.CW_LIST).json()['clanwars']
 
+        announced_cws = ClanWar.get_announced_cws()
+
         # Check if any of the clan wars are nearer than
         for cw in cw_list:
-            cw_time = datetime.datetime.fromtimestamp(
-                cw['datetime_timestamp']
-            ) - datetime.timedelta(hours=ClanWar.TZ_OFFSET)
-
+            # The time is being sent in UTC.
+            cw_time = datetime.datetime.utcfromtimestamp(cw['datetime_timestamp'])
             cw_id = cw['id']
 
-            if cw_id not in ClanWar.announced_cws and \
-                        now >= cw_time - datetime.timedelta(minutes=ClanWar.CHECKING_PERIOD):
-                # Imminent CW found. Announce.
-                ClanWar.announced_cws.append(cw_id)
-                break
+            if cw_id in announced_cws or now < cw_time - datetime.timedelta(minutes=ClanWar.TIME_TO_CW):
+                continue
+
+            # Find the CW players role and channel
+            cw_role = None
+            server = None
+
+            # TODO: This makes the bot pretty much impossible for multi-server use. Not like it's intended to anyway
+            for s in list(client.servers):
+                cw_role = discord.utils.find(lambda r: r.name == ClanWar.CW_PLAYER_ROLE, s.roles)
+
+                if cw_role:
+                    # Look for the server with both - the cw role and cw channel
+                    server = s
+                    break
+
+            if not cw_role:
+                return
+
+            await client.send_message(server, """{cw_role_mention}, a clan war vs **{opponent}** is starting in \
+**{dt_min}** minutes! Check out the details at *{cw_link}*!""".format(
+                cw_role_mention=cw_role.mention,
+                opponent=cw['opponent'],
+                dt_min=round((cw_time - now).total_seconds() / 60),
+                cw_link=ClanWar.get_cw_url(cw_id)
+            ))
+            ClanWar.add_announced_cw(cw_id)
+            break
 
     # Decorated as a coroutine, so client.send_message can be used
     async def handle(self):
@@ -197,7 +260,7 @@ Notes:
                 cw_chan = discord.utils.find(lambda c: c.name == self.CW_CHANNEL, self.client.get_all_channels())
                 self.response = ''
 
-                cw_link = '{}/cw/{}'.format(SC2CM_HOST, r['id'])
+                cw_link = ClanWar.get_cw_url(r['id'])
 
                 player_list = '\n{} players registered'.format(len(r['players']))
 
@@ -242,7 +305,7 @@ Notes:
                 id=cw['id'],
                 date=cw['datetime'],
                 opponent=cw['opponent'],
-                url='{}/cw/{}'.format(SC2CM_HOST, cw['id'])
+                url=ClanWar.get_cw_url(cw['id'])
             )
 
         self.response += '\nSee the whole list at {}/cw'.format(SC2CM_HOST)
