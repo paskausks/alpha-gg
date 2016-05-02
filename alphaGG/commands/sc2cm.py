@@ -3,7 +3,7 @@ import datetime
 
 import discord
 import requests
-from alphaGG.register import Command
+from alphaGG.command import Command
 
 """"
 Commands to interact with the API of SC2CM
@@ -18,7 +18,7 @@ class Top(Command):
     help = 'Returns the top 10 players in Galactic Gaming by ladder points.'
     verbose_help = '`top` - Returns the top 10 players in Galactic Gaming by ladder points.'
 
-    def handle(self, message: discord.Message, client: discord.Client):
+    def handle(self):
         response = requests.get('{}/api/top'.format(SC2CM_HOST))
 
         self.response = 'The top 10 players in Galactic Gaming by ladder points, at the moment are:\n'
@@ -40,8 +40,8 @@ class Player(Command):
     help = 'Returns the details of a clan player in the GG SC2CM database.'
     verbose_help = '`player <keyword>` - Returns the details of a clan player in the GG SC2CM database.'
 
-    def handle(self, message: discord.Message, client: discord.Client):
-        kw = ' '.join(message.content.split(' ')[1:])  # Ignore the first arg, which is the command itself
+    def handle(self):
+        kw = ' '.join(self.message.content.split(' ')[1:])  # Ignore the first arg, which is the command itself
         if not kw:
             Player.response = 'You must provide a player argument!'
             return
@@ -122,6 +122,9 @@ privately.
         if not ClanWar.LAST_CHECK + datetime.timedelta(minutes=ClanWar.CHECKING_PERIOD) <= now:
             return
 
+        # Set up next check
+        ClanWar.LAST_CHECK = now
+
         cw_list = requests.get(ClanWar.CW_LIST).json()['clanwars']
 
         # Check if any of the clan wars are nearer than
@@ -138,13 +141,10 @@ privately.
                 ClanWar.announced_cws.append(cw_id)
                 break
 
-        # Set up next check
-        ClanWar.LAST_CHECK = now
-
     # Decorated as a coroutine, so client.send_message can be used
-    async def handle(self, message: discord.Message, client: discord.Client):
+    async def handle(self):
 
-        args = message.content.split(' ')
+        args = self.message.content.split(' ')
         try:
             action = args[1]  # Ignore the first arg, which is the command itself
             cw_id = args[2]
@@ -193,8 +193,8 @@ Notes:
 
             elif action == 'promote':
                 # Promotion command invoked
-                cw_role = discord.utils.find(lambda r: r.name == self.CW_PLAYER_ROLE, message.server.roles)
-                cw_chan = discord.utils.find(lambda c: c.name == self.CW_CHANNEL, client.get_all_channels())
+                cw_role = discord.utils.find(lambda r: r.name == self.CW_PLAYER_ROLE, self.message.server.roles)
+                cw_chan = discord.utils.find(lambda c: c.name == self.CW_CHANNEL, self.client.get_all_channels())
                 self.response = ''
 
                 cw_link = '{}/cw/{}'.format(SC2CM_HOST, r['id'])
@@ -206,7 +206,7 @@ Notes:
                     for p in r['players']:
                         player_list += '{} '.format(p['name'])
 
-                await client.send_message(
+                await self.client.send_message(
                     cw_chan,
                     '{}, take a look at an upcoming CW vs **{}** - {}{}!'.format(
                         cw_role.mention, r['opponent'], cw_link, player_list
@@ -214,12 +214,12 @@ Notes:
                 )
 
                 # PM all of the members of the role
-                for member in list(message.server.members):
+                for member in list(self.message.server.members):
                     if cw_role in member.roles:
-                        await client.send_message(
+                        await self.client.send_message(
                             member,
                             'Hey, {}! {} wants you to look at an upcoming CW vs **{}** - {}{}'.format(
-                                member.name, message.author.name, r['opponent'], cw_link, player_list
+                                member.name, self.message.author.name, r['opponent'], cw_link, player_list
                             )
                         )
 

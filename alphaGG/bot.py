@@ -4,10 +4,10 @@ import sys
 import os
 import asyncio
 import discord
+from alphaGG.data import Database
+from alphaGG.register import CommandRegister
 
 sys.path.extend([os.path.dirname(os.path.dirname(os.path.abspath(__file__)))])
-
-from alphaGG import register
 
 try:
     from alphaGG import config
@@ -28,11 +28,14 @@ client = discord.Client()
 # Register commands
 commands = config.COMMANDS
 
+# Init database
+db = Database()
+
 if not commands:
     sys.stderr.write('No commands registered in config.py!')
 
 for c in commands:
-    register.CommandRegister.register_command(c)
+    CommandRegister.register_command(c)
 
 
 @client.event
@@ -45,7 +48,7 @@ async def on_ready():
 
     while True:
         # Run background tasks once in a second.
-        for cls in register.CommandRegister.commands:
+        for cls in CommandRegister.commands:
             try:
                 await cls.background(client)
             except TypeError:
@@ -60,16 +63,16 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    for cls in register.CommandRegister.commands:
+    for cls in CommandRegister.commands:
         # look through all registered command classes. See if there's a match for the command trigger, initialize it
         # and call it's handle() method.
-        if message.content.startswith('{}{}'.format(command_prefix, cls.command)):
-            cmd = cls()
+        if cls.trigger(message):
+            cmd = cls(message, client, db)
             try:
-                await cmd.handle(message, client)
+                await cmd.handle()
             except TypeError:
                 # handle() Not a coroutine
-                cmd.handle(message, client)
+                cmd.handle()
 
             if cmd.response:
                 # Send a response if it has been defined.
@@ -80,4 +83,5 @@ try:
     client.run(config.BOT_TOKEN)
 except discord.errors.LoginFailure:
     sys.stderr.write('Token incorrect. Please check the value of BOT_TOKEN in config.py!\n')
+    db.connection.close()
     sys.exit(1)

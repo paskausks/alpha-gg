@@ -1,19 +1,19 @@
 #!/bin/env python3
 
-import discord
-from alphaGG import (config, register)
+from alphaGG import config
+from alphaGG.command import Command
 
 """
 Dynamic help command. Responds with the help properties of the registered command classes.
 """
 
 
-class Help(register.Command):
+class Help(Command):
     command = 'help'
     help = 'Shows this message.'
 
-    def handle(self, message: discord.Message, client: discord.Client):
-        kw = ' '.join(message.content.split(' ')[1:])  # Ignore the first arg, which is the command itself
+    def handle(self):
+        kw = ' '.join(self.message.content.split(' ')[1:])  # Ignore the first arg, which is the command itself
         if kw:
             # Detailed information for a command request
             for c in config.COMMANDS:
