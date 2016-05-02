@@ -4,10 +4,11 @@ import sys
 import os
 import asyncio
 import discord
-from alphaGG.data import Database
-from alphaGG.register import CommandRegister
 
 sys.path.extend([os.path.dirname(os.path.dirname(os.path.abspath(__file__)))])
+
+from alphaGG.data import Database
+from alphaGG.register import CommandRegister
 
 try:
     from alphaGG import config
