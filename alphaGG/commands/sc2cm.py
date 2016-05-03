@@ -99,7 +99,7 @@ class ClanWar(Command):
 
     LAST_CHECK = datetime.datetime.utcnow()  # Timestamp when the bot last checked if a CW isn't coming soon
     CHECKING_PERIOD = 5  # Minutes, how often will the bot check for imminent clan wars
-    TIME_TO_CW = 30  # When it's this amount of minutes until a clan war, it will trigger the announcement.
+    TIME_TO_CW = 30  # When it's this or less amount of minutes until a clan war, it will trigger the announcement.
 
     command = 'cw'
     help = """Returns a list of upcoming clan wars or, if an ID and action is supplied, details of a clan war and \
@@ -231,7 +231,7 @@ privately.
             r = response.json()['clanwar']
 
             if action == 'get':
-                self.response = """*{date}* vs **{opponent}**
+                self.response = """*{date}* UTC vs **{opponent}**
 In game channel: *{chan}*
 
 Notes:
@@ -301,7 +301,7 @@ Notes:
         self.response = 'Upcoming clan wars are:\n'
 
         for cw in response['clanwars']:
-            self.response += 'ID *{id}*, at *{date}* vs **{opponent}** - {url}\n'.format(
+            self.response += 'ID *{id}*, at *{date}* UTC vs **{opponent}** - {url}\n'.format(
                 id=cw['id'],
                 date=cw['datetime'],
                 opponent=cw['opponent'],
