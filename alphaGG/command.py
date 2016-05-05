@@ -32,7 +32,7 @@ class Command(object):
         :return: boolean
         """
         from alphaGG.config import COMMAND_PREFIX  # to avoid a cross-import.
-        return message.content.startswith('{}{}'.format(COMMAND_PREFIX, cls.command))
+        return message.content and message.content.startswith('{}{}'.format(COMMAND_PREFIX, cls.command))
 
     def handle(self):
         """
