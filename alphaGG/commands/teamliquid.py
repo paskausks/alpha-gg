@@ -57,11 +57,11 @@ class TeamLiquidFeed(Command):
             rv = """**{title}** by *{author}*.
 {description}
 Read more: {link}
-Posted: {dt} hours ago"""
+Posted: {dt} minutes ago"""
             await client.send_message(feed_channel, rv.format(
                 title=f.title,
                 author=', '.join(a.get('name') for a in f.authors),
                 description=f.summary,
                 link=f.link,
-                dt=floor((now - pub_utc).total_seconds() / 60 / 60)
+                dt=floor((now - pub_utc).total_seconds() / 60)
             ))
