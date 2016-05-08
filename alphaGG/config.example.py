@@ -1,4 +1,5 @@
 #!/bin/env python3
+from .commands.author import Author
 from .commands.sc2cm import (Top, Player, ClanWar)
 from .commands import help as help_command
 from .commands.teamliquid import TeamLiquidFeed
@@ -16,5 +17,6 @@ COMMANDS = [
     Top,
     Player,
     ClanWar,
-    TeamLiquidFeed
+    TeamLiquidFeed,
+    Author
 ]
