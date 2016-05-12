@@ -58,7 +58,25 @@ class Player(Command):
 
         country = p['country'] if p['country'] else 'an undisclosed location'
 
-        player_description = """a rank {rank} {league} {race} from {country} with {points} points
+        player_description = """a rank {rank} {league} {race} from {country} with {points} points"""
+
+class Valy(Command):
+    command = 'valy'
+    help = 'Returns the details of a clan player. Seriously, it is not worth your time!.'
+
+    def handle(self):
+        response = requests.get('{}/api/player/{}'.format(SC2CM_HOST, valy))
+
+        if response.status_code == 404:
+            self.response = 'This person either isn\'t a clan member or just doesn\'t exist in my database.'
+            return
+
+        p = response.json()['player']
+
+        country = p['country'] if p['country'] else 'an undisclosed location'
+
+        player_description = """a rank {rank} {league} {race} from {country} with {points} points...HAHAHA WHAT A SCRUB! Melon head."""
+
 W/L: {wins}/{losses} ({winrate} % winrate in {total} games).""".format(
             rank=p['rank'],
             league=p['league'],
