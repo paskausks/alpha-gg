@@ -58,6 +58,15 @@ class Player(Command):
 
         country = p['country'] if p['country'] else 'an undisclosed location'
 
+        the_countries = [
+            'Netherlands',
+            'United Kingdom',
+            ] 
+            
+        if country in the_countries:
+            country = 'the ' + country
+            
+
         player_description = """a rank {rank} {league} {race} from {country} with {points} points
 W/L: {wins}/{losses} ({winrate} % winrate in {total} games).""".format(
             rank=p['rank'],
