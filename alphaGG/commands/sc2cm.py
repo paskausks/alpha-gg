@@ -64,9 +64,8 @@ class Player(Command):
             ] 
             
         if country in the_countries:
-            country = 'the ' + country
+            country = 'The ' + country
             
-
         player_description = """a rank {rank} {league} {race} from {country} with {points} points
 W/L: {wins}/{losses} ({winrate} % winrate in {total} games).""".format(
             rank=p['rank'],
