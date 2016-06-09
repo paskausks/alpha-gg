@@ -61,6 +61,10 @@ class Player(Command):
         the_countries = [
             'Netherlands',
             'United Kingdom',
+            'United States of America',
+            'The Philippines',
+            'The Czech Republic',
+            'The West Indies',
             ] 
             
         if country in the_countries:
